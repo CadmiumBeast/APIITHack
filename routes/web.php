@@ -30,5 +30,10 @@ Route::middleware(['auth', 'user-access:lecturer'])->group(function () {
     })->name('lecturer.dashboard');
 });
 
+// Catch-all route for Admin SPA — serves AdminDashboard for any /admin/* route
+Route::get('/admin/{any?}', function () {
+    return Inertia::render('AdminDashboard');
+})->where('any', '.*')->name('admin.dashboard');
+
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
