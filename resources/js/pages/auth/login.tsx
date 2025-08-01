@@ -8,103 +8,140 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import AuthLayout from '@/layouts/auth-layout';
 
 type LoginForm = {
-    email: string;
-    password: string;
-    remember: boolean;
+  email: string;
+  password: string;
+  remember: boolean;
 };
 
 interface LoginProps {
-    status?: string;
-    canResetPassword: boolean;
+  status?: string;
+  canResetPassword: boolean;
 }
 
 export default function Login({ status, canResetPassword }: LoginProps) {
-    const { data, setData, post, processing, errors, reset } = useForm<Required<LoginForm>>({
-        email: '',
-        password: '',
-        remember: false,
+  const { data, setData, post, processing, errors, reset } = useForm<Required<LoginForm>>({
+    email: '',
+    password: '',
+    remember: false,
+  });
+
+  const submit: FormEventHandler = (e) => {
+    e.preventDefault();
+    post(route('login'), {
+      onFinish: () => reset('password'),
     });
+  };
 
-    const submit: FormEventHandler = (e) => {
-        e.preventDefault();
-        post(route('login'), {
-            onFinish: () => reset('password'),
-        });
-    };
+  return (
+    <>
+      <Head title="Log in" />
 
-    return (
-        <AuthLayout title="Log in to your account" description="Enter your email and password below to log in">
-            <Head title="Log in" />
+      <div className="min-h-screen flex items-center justify-center bg-[#e6f4f1]">
+        <div className="flex w-full max-w-5xl shadow-2xl rounded-2xl overflow-hidden bg-white">
+          {/* Left Panel */}
+            <div className="hidden md:flex flex-col justify-center items-center bg-gradient-to-br from-[#00b2a7] to-[#018f87] text-white w-1/2 p-10 space-y-6">
+            <h2 className="text-4xl font-bold">Welcome Back!</h2>
+            <p className="text-lg text-center">
+                Let’s make classroom booking simpler and faster. Log in to manage your bookings and schedules.
+            </p>
+            <img
+                src="/images/login-illustration.jpg"
+                alt="Login Illustration"
+                className="w-2/5"
+            />
+            </div>
 
-            <form className="flex flex-col gap-6" onSubmit={submit}>
-                <div className="grid gap-6">
-                    <div className="grid gap-2">
-                        <Label htmlFor="email">Email address</Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            required
-                            autoFocus
-                            tabIndex={1}
-                            autoComplete="email"
-                            value={data.email}
-                            onChange={(e) => setData('email', e.target.value)}
-                            placeholder="email@example.com"
-                        />
-                        <InputError message={errors.email} />
-                    </div>
+          {/* Right Panel (Form) */}
+          <div className="w-full md:w-1/2 p-8 sm:p-10">
+            <h2 className="text-3xl font-semibold text-center text-[#030c0b] mb-2">
+              Log in to your account
+            </h2>
+            <p className="text-sm text-center text-gray-600 mb-6">
+              Enter your credentials to continue
+            </p>
 
-                    <div className="grid gap-2">
-                        <div className="flex items-center">
-                            <Label htmlFor="password">Password</Label>
-                            {canResetPassword && (
-                                <TextLink href={route('password.request')} className="ml-auto text-sm" tabIndex={5}>
-                                    Forgot password?
-                                </TextLink>
-                            )}
-                        </div>
-                        <Input
-                            id="password"
-                            type="password"
-                            required
-                            tabIndex={2}
-                            autoComplete="current-password"
-                            value={data.password}
-                            onChange={(e) => setData('password', e.target.value)}
-                            placeholder="Password"
-                        />
-                        <InputError message={errors.password} />
-                    </div>
+            <form onSubmit={submit} className="space-y-5">
+              <div>
+                <Label htmlFor="email" className="text-[#030c0b]">Email address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  autoFocus
+                  autoComplete="email"
+                  value={data.email}
+                  onChange={(e) => setData('email', e.target.value)}
+                  placeholder="you@example.com"
+                  className="mt-1"
+                />
+                <InputError message={errors.email} />
+              </div>
 
-                    <div className="flex items-center space-x-3">
-                        <Checkbox
-                            id="remember"
-                            name="remember"
-                            checked={data.remember}
-                            onClick={() => setData('remember', !data.remember)}
-                            tabIndex={3}
-                        />
-                        <Label htmlFor="remember">Remember me</Label>
-                    </div>
-
-                    <Button type="submit" className="mt-4 w-full" tabIndex={4} disabled={processing}>
-                        {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
-                        Log in
-                    </Button>
-                </div>
-
-                <div className="text-center text-sm text-muted-foreground">
-                    Don't have an account?{' '}
-                    <TextLink href={route('register')} tabIndex={5}>
-                        Sign up
+              <div>
+                <Label htmlFor="password" className="text-[#030c0b]">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={data.password}
+                  onChange={(e) => setData('password', e.target.value)}
+                  placeholder="••••••••"
+                  className="mt-1"
+                />
+                <InputError message={errors.password} />
+                {canResetPassword && (
+                  <div className="mt-2 text-right">
+                    <TextLink
+                      href={route('password.request')}
+                      className="text-sm text-[#00b2a7] hover:underline"
+                    >
+                      Forgot password?
                     </TextLink>
-                </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember"
+                  name="remember"
+                  checked={data.remember}
+                  onClick={() => setData('remember', !data.remember)}
+                />
+                <Label htmlFor="remember" className="text-sm text-gray-700">Remember me</Label>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-[#00b2a7] hover:bg-[#019d95] text-white font-medium transition duration-200"
+                disabled={processing}
+              >
+                {processing && <LoaderCircle className="h-4 w-4 animate-spin mr-2" />}
+                Log In
+              </Button>
             </form>
 
-            {status && <div className="mb-4 text-center text-sm font-medium text-green-600">{status}</div>}
-        </AuthLayout>
-    );
+            <p className="mt-6 text-sm text-center text-gray-600">
+              Don’t have an account?{' '}
+              <TextLink
+                href={route('register')}
+                className="font-medium text-[#00b2a7] hover:underline"
+              >
+                Sign up
+              </TextLink>
+            </p>
+
+            {status && (
+              <div className="mt-4 text-center text-sm font-semibold text-green-600">
+                {status}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
 }
