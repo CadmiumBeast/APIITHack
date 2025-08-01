@@ -38,8 +38,9 @@ export default function Login({ status, canResetPassword }: LoginProps) {
     <>
       <Head title="Log in" />
 
-      <div className="min-h-screen flex items-center justify-center bg-[#e6f4f1]">
-        <div className="flex w-full max-w-5xl shadow-2xl rounded-2xl overflow-hidden bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-[url('/images/bg.jpg')] bg-cover bg-center">
+      
+        <div className="flex w-full max-w-5xl rounded-2xl overflow-hidden bg-white/90 backdrop-blur-sm ring-1 ring-black/10 shadow-xl">
           {/* Left Panel */}
             <div className="hidden md:flex flex-col justify-center items-center bg-gradient-to-br from-[#00b2a7] to-[#018f87] text-white w-1/2 p-10 space-y-6">
             <h2 className="text-4xl font-bold">Welcome Back!</h2>
@@ -74,7 +75,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                   value={data.email}
                   onChange={(e) => setData('email', e.target.value)}
                   placeholder="you@example.com"
-                  className="mt-1"
+                  className="mt-1 text-black"
                 />
                 <InputError message={errors.email} />
               </div>
@@ -89,7 +90,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                   value={data.password}
                   onChange={(e) => setData('password', e.target.value)}
                   placeholder="••••••••"
-                  className="mt-1"
+                  className=""
                 />
                 <InputError message={errors.password} />
                 {canResetPassword && (
