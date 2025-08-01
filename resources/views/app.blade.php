@@ -3,10 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        {{-- Temporarily disabled CSP for development --}}
-        {{-- @if(app()->environment('local'))
-        <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' 'unsafe-inline' http://localhost:5173 http://localhost:5174 http://localhost:5175 http://localhost:5176 http://localhost:5177; style-src 'self' 'unsafe-inline' https://fonts.bunny.net http://localhost:5173 http://localhost:5174 http://localhost:5175 http://localhost:5176 http://localhost:5177;">
-        @endif --}}
+        <meta name="csrf-token" content="{{ csrf_token() }}">
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>

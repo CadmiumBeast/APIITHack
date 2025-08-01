@@ -33,4 +33,9 @@ class Room extends Model
     {
         return $this->belongsTo(VenueType::class, 'venue_type_id');
     }
+
+    public function RoomBookings()
+    {
+        return $this->hasMany(RoomBooking::class);
+    }
 }
