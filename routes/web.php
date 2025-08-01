@@ -29,6 +29,8 @@ Route::middleware(['auth', 'user-access:admin'])->group(function () {
     Route::get('/admin/classrooms', [AdminController::class, 'manageClassrooms'])->name('admin.classrooms');
     Route::post('/admin/classrooms/book', [AdminController::class, 'bookClassroom'])->name('admin.classrooms.book');
     Route::post('/admin/classrooms/check-conflicts', [AdminController::class, 'checkBookingConflicts'])->name('admin.classrooms.check-conflicts');
+    Route::post('/admin/bookings/by-date-location', [AdminController::class, 'getBookingsByDateAndLocation'])->name('admin.bookings.by-date-location');
+    Route::delete('/admin/bookings/{id}', [AdminController::class, 'deleteBooking'])->name('admin.bookings.delete');
 
     Route::get('/admin/reports', [AdminController::class, 'manageReports'])->name('admin.reports');
 

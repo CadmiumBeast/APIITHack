@@ -16,7 +16,55 @@ use Inertia\Inertia;
 class AdminController extends Controller
 {
     public function index(){
-        return Inertia::render('AdminDashboard');
+        // Get real dashboard statistics
+        $totalRooms = Room::count();
+        $pendingApprovals = RoomBooking::where('status', 'pending')->count(); // Assuming you'll add status column
+        $thisMonthBookings = RoomBooking::whereMonth('created_at', now()->month)
+                                      ->whereYear('created_at', now()->year)
+                                      ->count();
+        
+        // Get locations for building selection
+        $locations = Location::all();
+        
+        // Get today's bookings for overview
+        $todayBookings = RoomBooking::whereDate('booking_date', today())
+                                   ->with(['user', 'room.location'])
+                                   ->get();
+        
+        return Inertia::render('AdminDashboard', [
+            'statistics' => [
+                'total_rooms' => $totalRooms,
+                'pending_approvals' => $pendingApprovals,
+                'this_month_bookings' => $thisMonthBookings,
+            ],
+            'locations' => $locations,
+            'today_bookings' => $todayBookings,
+        ]);
+    }
+
+    public function manageBookings()
+    {
+        $bookings = RoomBooking::with(['user', 'room.location', 'room.venueType'])
+            ->orderBy('booking_date', 'desc')
+            ->get();
+
+        return Inertia::render('ViewBookings', [
+            'bookings' => $bookings->map(function ($booking) {
+                return [
+                    'id' => $booking->id,
+                    'room_id' => $booking->room_id,
+                    'room_name' => $booking->room->RoomID,
+                    'building' => $booking->room->location ? $booking->room->location->name : 'Unknown Building',
+                    'level' => $booking->room->level,
+                    'venue_type' => $booking->room->venueType ? $booking->room->venueType->name : 'Unknown Type',
+                    'lecturer_name' => $booking->user->name,
+                    'lecturer_email' => $booking->user->email,
+                    'start_time' => $booking->start_time,
+                    'end_time' => $booking->end_time,
+                    'booking_date' => $booking->booking_date,
+                ];
+            }),
+        ]);
     }
 
     public function manageRooms()
@@ -177,11 +225,7 @@ class AdminController extends Controller
                 $startDate->add(new \DateInterval('P1D'));
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Classroom bookings created successfully!',
-                'bookings_created' => count($bookings)
-            ]);
+            return redirect()->route('admin.dashboard')->with('success', 'Classroom bookings created successfully!');
 
         } catch (\Exception $e) {
             return response()->json([
@@ -243,6 +287,62 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while checking conflicts: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getBookingsByDateAndLocation(Request $request)
+    {
+        $validated = $request->validate([
+            'date' => 'required|date',
+            'location_id' => 'nullable|exists:locations,id'
+        ]);
+
+        $query = RoomBooking::whereDate('booking_date', $validated['date'])
+                           ->with(['user', 'room.location', 'room.venueType']);
+
+        if (!empty($validated['location_id'])) {
+            $query->whereHas('room', function($q) use ($validated) {
+                $q->where('building_id', $validated['location_id']);
+            });
+        }
+
+        $bookings = $query->orderBy('start_time')->get();
+
+        return response()->json([
+            'success' => true,
+            'bookings' => $bookings->map(function($booking) {
+                return [
+                    'id' => $booking->id,
+                    'room_id' => $booking->room_id,
+                    'room_name' => $booking->room->RoomID,
+                    'building' => $booking->room->location->name,
+                    'level' => $booking->room->level,
+                    'venue_type' => $booking->room->venueType->name,
+                    'lecturer_name' => $booking->user->name,
+                    'lecturer_email' => $booking->user->email,
+                    'start_time' => $booking->start_time,
+                    'end_time' => $booking->end_time,
+                    'booking_date' => $booking->booking_date,
+                ];
+            })
+        ]);
+    }
+
+    public function deleteBooking(Request $request, $id)
+    {
+        try {
+            $booking = RoomBooking::findOrFail($id);
+            $booking->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting booking: ' . $e->getMessage()
             ], 500);
         }
     }
