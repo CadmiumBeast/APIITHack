@@ -8,6 +8,9 @@ import {
 } from 'recharts';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import BookingsPage from './ViewBookings';
+import LogsPage from './UserLogs';
+import FeedbackPage from './Feedback';
 
 const COLORS = ['#00b2a7', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -149,12 +152,6 @@ const DashboardPage: React.FC = () => {
     </div>
   );
 };
-
-const AdminDashboard: React.FC = () => {
-  return (
-    <AdminLayout>
-      <DashboardPage />
-    </AdminLayout>
   );
 };
 
