@@ -22,25 +22,25 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Tharanga Peiris',
                 'email' => 'tharanga@apiit.lk',
-                'type' => 2,
+                'user_type' => 'lecturer',
                 'password' => bcrypt('password'), // password
             ],
             [
                 'name' => 'Musharraf Azhar',
                 'email' => 'musharraf@apiit.lk',
-                'type' => 2,
+                'user_type' => 'lecturer',
                 'password' => bcrypt('password'), // password
             ],
             [
                 'name' => 'Sajid Fayaz Haniff',
                 'email' => 'sajid@apiit.lk',
-                'type' => 2,
+                'user_type' => 'lecturer',
                 'password' => bcrypt('password'), // password
             ],
             [
                 'name' => 'Dulanga Senanayake',
                 'email' => 'Dulanga@apiit.lk',
-                'type' => 1,
+                'user_type' => 'admin',
                 'password' => bcrypt('password'), // password
             ]
         ];

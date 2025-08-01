@@ -48,7 +48,7 @@ class AuthenticatedSessionController extends Controller
         }
 
         // Fallback if user type is not recognized
-        return redirect()->intended('/');
+        return redirect()->intended('/dashboard');
     }
 
     /**
