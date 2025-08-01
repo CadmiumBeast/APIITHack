@@ -15,62 +15,72 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Mock data - will be replaced with actual API calls
-const initialStats = {
-    totalBookings: 12,
-    todayBookings: 3,
-    upcomingBookings: 5,
-    availableRooms: 8,
-};
+interface DashboardStats {
+    totalBookings: number;
+    todayBookings: number;
+    upcomingBookings: number;
+    availableRooms: number;
+}
 
-const initialTodayBookings = [
-    {
-        id: 1,
-        roomName: 'Lab 101',
-        building: 'Colombo City Campus',
-        time: '09:00 - 11:00',
-        subject: 'Web Development',
-        status: 'confirmed',
-    },
-    {
-        id: 2,
-        roomName: 'Lecture Hall A',
-        building: 'Foundation School',
-        time: '14:00 - 16:00',
-        subject: 'Database Systems',
-        status: 'confirmed',
-    },
-    {
-        id: 3,
-        roomName: 'Smart Classroom 2',
-        building: 'Kandy Branch',
-        time: '16:30 - 18:30',
-        subject: 'Software Engineering',
-        status: 'pending',
-    },
-];
+interface TodayBooking {
+    id: number;
+    roomName: string;
+    building: string;
+    time: string;
+    subject: string;
+    status: string;
+    start_time: string;
+    end_time: string;
+    booking_date: string;
+}
 
-export default function LecturerDashboard() {
-    const { auth } = usePage().props as any;
-    const lecturerName = auth?.user?.name || "Lecturer";
-    
+interface LecturerUser {
+    name: string;
+    email: string;
+}
+
+interface Props {
+    stats: DashboardStats;
+    todayBookings: TodayBooking[];
+    user: LecturerUser;
+}
+
+export default function LecturerDashboard({ stats, todayBookings, user }: Props) {
     const [activeTab, setActiveTab] = useState('overview');
-    const [mockStats, setMockStats] = useState(initialStats);
-    const [mockTodayBookings, setMockTodayBookings] = useState(initialTodayBookings);
+    const [localStats, setLocalStats] = useState(stats);
+    const [localTodayBookings, setLocalTodayBookings] = useState(todayBookings);
 
     const handleLogout = () => {
         router.post('/logout');
     };
 
-    const handleCancelBooking = (bookingId: number) => {
+    const handleCancelBooking = async (bookingId: number) => {
         if (confirm('Are you sure you want to cancel this booking?')) {
-            setMockTodayBookings(prev => prev.filter(booking => booking.id !== bookingId));
-            setMockStats(prev => ({
-                ...prev,
-                totalBookings: prev.totalBookings - 1,
-                todayBookings: prev.todayBookings - 1
-            }));
-            alert('Booking cancelled successfully!');
+            try {
+                const response = await fetch(`/lecturer/bookings/${bookingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    // Update local state
+                    setLocalTodayBookings(prev => prev.filter(booking => booking.id !== bookingId));
+                    setLocalStats(prev => ({
+                        ...prev,
+                        totalBookings: prev.totalBookings - 1,
+                        todayBookings: prev.todayBookings - 1
+                    }));
+                    alert('Booking cancelled successfully!');
+                } else {
+                    alert('Error cancelling booking: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error cancelling booking:', error);
+                alert('Error cancelling booking');
+            }
         }
     };
 
@@ -121,12 +131,12 @@ export default function LecturerDashboard() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Welcome Section */}
                 <div className="mb-6 sm:mb-8">
-                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Welcome back, {lecturerName}!</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Welcome back, {user.name}!</h2>
                     <p className="text-gray-600 text-sm sm:text-base">Manage your classroom bookings and inspire the next generation of learners.</p>
                 </div>
 
                 {/* Daily Booking Limit Alert */}
-                {mockStats.todayBookings >= 4 && (
+                {localStats.todayBookings >= 4 && (
                     <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                         <div className="flex items-center space-x-2">
                             <div className="w-2 h-2 bg-red-500 rounded-full"></div>
@@ -136,13 +146,13 @@ export default function LecturerDashboard() {
                     </div>
                 )}
 
-                {mockStats.todayBookings < 4 && (
+                {localStats.todayBookings < 4 && (
                     <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                         <div className="flex items-center space-x-2">
                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <p className="text-green-700 font-medium">Daily booking status: {mockStats.todayBookings}/4</p>
+                            <p className="text-green-700 font-medium">Daily booking status: {localStats.todayBookings}/4</p>
                         </div>
-                        <p className="text-green-600 text-sm mt-1">You have {4 - mockStats.todayBookings} booking(s) remaining today.</p>
+                        <p className="text-green-600 text-sm mt-1">You have {4 - localStats.todayBookings} booking(s) remaining today.</p>
                     </div>
                 )}
 
@@ -158,7 +168,7 @@ export default function LecturerDashboard() {
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-gray-900">{mockStats.totalBookings}</div>
+                            <div className="text-3xl font-bold text-gray-900">{localStats.totalBookings}</div>
                             <p className="text-xs text-gray-500 mt-1">This semester</p>
                         </CardContent>
                     </Card>
@@ -173,7 +183,7 @@ export default function LecturerDashboard() {
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-gray-900">{mockStats.todayBookings}</div>
+                            <div className="text-3xl font-bold text-gray-900">{localStats.todayBookings}</div>
                             <p className="text-xs text-gray-500 mt-1">Scheduled for today</p>
                         </CardContent>
                     </Card>
@@ -188,7 +198,7 @@ export default function LecturerDashboard() {
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-gray-900">{mockStats.upcomingBookings}</div>
+                            <div className="text-3xl font-bold text-gray-900">{localStats.upcomingBookings}</div>
                             <p className="text-xs text-gray-500 mt-1">Next 7 days</p>
                         </CardContent>
                     </Card>
@@ -203,7 +213,7 @@ export default function LecturerDashboard() {
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-gray-900">{mockStats.availableRooms}</div>
+                            <div className="text-3xl font-bold text-gray-900">{localStats.availableRooms}</div>
                             <p className="text-xs text-gray-500 mt-1">Currently free</p>
                         </CardContent>
                     </Card>
@@ -218,13 +228,13 @@ export default function LecturerDashboard() {
                                 <CardDescription className="text-gray-600 text-sm">Your classroom bookings for today</CardDescription>
                             </div>
                             <Badge className="bg-[#00b2a7] text-white px-3 py-1 text-xs">
-                                {mockTodayBookings.length} Bookings
+                                {localTodayBookings.length} Bookings
                             </Badge>
                         </div>
                     </CardHeader>
                     <CardContent className="p-4 sm:p-6">
                         <div className="space-y-3 sm:space-y-4">
-                            {mockTodayBookings.map((booking) => (
+                            {localTodayBookings.map((booking) => (
                                 <div key={booking.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors gap-3 sm:gap-4">
                                     <div className="flex items-center space-x-3 sm:space-x-4 w-full sm:w-auto">
                                         <div className="flex-shrink-0">

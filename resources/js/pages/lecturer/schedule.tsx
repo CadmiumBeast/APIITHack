@@ -7,63 +7,29 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
-// Mock data
+interface Booking {
+    id: number;
+    roomName: string;
+    building: string;
+    venueType: string;
+    capacity: number;
+    level: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    purpose: string;
+    status: string;
+    canCancel: boolean;
+    isPast: boolean;
+}
 
-// Mock data
-const mockBookings = [
-    {
-        id: 1,
-        roomName: 'Lab 101',
-        building: 'Colombo City Campus',
-        date: '2024-01-15',
-        startTime: '09:00',
-        endTime: '11:00',
-        subject: 'Web Development',
-        status: 'confirmed',
-        canCancel: true,
-        isPast: false,
-    },
-    {
-        id: 2,
-        roomName: 'Lecture Hall A',
-        building: 'Foundation School',
-        date: '2024-01-15',
-        startTime: '14:00',
-        endTime: '16:00',
-        subject: 'Database Systems',
-        status: 'confirmed',
-        canCancel: false, // Less than 1 hour before
-        isPast: false,
-    },
-    {
-        id: 3,
-        roomName: 'Smart Classroom 2',
-        building: 'Kandy Branch',
-        date: '2024-01-16',
-        startTime: '10:00',
-        endTime: '12:00',
-        subject: 'Software Engineering',
-        status: 'pending',
-        canCancel: true,
-        isPast: false,
-    },
-    {
-        id: 4,
-        roomName: 'Main Auditorium',
-        building: 'Colombo City Campus',
-        date: '2024-01-14',
-        startTime: '16:00',
-        endTime: '18:00',
-        subject: 'Computer Networks',
-        status: 'confirmed',
-        canCancel: false,
-        isPast: true,
-    },
-];
+interface Props {
+    bookings: Booking[];
+}
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export default function Schedule() {
+export default function Schedule({ bookings }: Props) {
     const { auth } = usePage().props as any;
     const lecturerName = auth?.user?.name || "Lecturer";
     
@@ -74,19 +40,28 @@ export default function Schedule() {
 
     const getBookingsForDate = (date: Date) => {
         const dateStr = date.toISOString().split('T')[0];
-        return mockBookings.filter(booking => booking.date === dateStr);
+        return bookings.filter((booking: Booking) => booking.date === dateStr);
     };
 
     const handleCancelBooking = async (bookingId: number) => {
         setIsCancelling(true);
         try {
-            // Mock API call - will be replaced with actual API
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            console.log('Cancelling booking:', bookingId);
-            
-            // Success - update local state or refresh data
-            alert('Booking cancelled successfully!');
-            setBookingToCancel(null);
+            const response = await fetch(`/lecturer/bookings/${bookingId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+            });
+
+            if (response.ok) {
+                // Success - refresh the page to get updated data
+                router.reload();
+                setBookingToCancel(null);
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to cancel booking');
+            }
         } catch (error) {
             console.error('Error cancelling booking:', error);
             alert('Failed to cancel booking. Please try again.');
@@ -285,13 +260,13 @@ export default function Schedule() {
                                                 {date.getDate()}
                                             </div>
                                             <div className="space-y-1">
-                                                {dayBookings.map(booking => (
+                                                {dayBookings.map((booking: Booking) => (
                                                     <div 
                                                         key={booking.id}
                                                         className="text-xs p-1 bg-[#00b2a7] text-white rounded cursor-pointer hover:bg-[#019d95]"
-                                                        title={`${booking.subject} - ${booking.startTime}-${booking.endTime}`}
+                                                        title={`${booking.purpose} - ${booking.startTime}-${booking.endTime}`}
                                                     >
-                                                        {booking.subject}
+                                                        {booking.purpose}
                                                     </div>
                                                 ))}
                                             </div>
@@ -309,8 +284,22 @@ export default function Schedule() {
                             <CardDescription>Your classroom reservations</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-4">
-                                {mockBookings.map((booking) => (
+                            {bookings.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                                        <Calendar className="h-8 w-8 text-gray-400" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Bookings Found</h3>
+                                    <p className="text-gray-600 mb-6">You haven't made any room bookings yet.</p>
+                                    <Link href="/lecturer/room-search">
+                                        <Button className="bg-[#00b2a7] hover:bg-[#019d95] text-white">
+                                            Book a Room
+                                        </Button>
+                                    </Link>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {bookings.map((booking: Booking) => (
                                     <div key={booking.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors gap-4">
                                         <div className="flex items-center space-x-4 w-full sm:w-auto">
                                             <div className="flex-shrink-0">
@@ -323,7 +312,7 @@ export default function Schedule() {
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{booking.roomName}</h3>
                                                 <p className="text-xs sm:text-sm text-gray-600 truncate">{booking.building}</p>
-                                                <p className="text-xs sm:text-sm text-gray-500 truncate">{booking.subject}</p>
+                                                <p className="text-xs sm:text-sm text-gray-500 truncate">{booking.purpose}</p>
                                             </div>
                                         </div>
                                         <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
@@ -379,7 +368,8 @@ export default function Schedule() {
                                         </div>
                                     </div>
                                 ))}
-                            </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 )}

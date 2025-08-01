@@ -1,6 +1,6 @@
 import { Head, router, Link, usePage } from '@inertiajs/react';
 import { Calendar, Clock, MapPin, Users, Building, AlertCircle, CheckCircle, Plus, GraduationCap, LogOut, Search } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,54 +22,40 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Mock data
-const buildings = [
-    { id: 1, name: 'Colombo City Campus' },
-    { id: 2, name: 'Foundation School' },
-    { id: 3, name: 'Kandy Branch' },
-];
+interface Location {
+    id: number;
+    name: string;
+}
 
-const venueTypes = [
-    { id: 'lecture_room', name: 'Lecture Room' },
-    { id: 'lab', name: 'Laboratory' },
-    { id: 'study_room', name: 'Study Room' },
-    { id: 'auditorium', name: 'Auditorium' },
-    { id: 'smart_classroom', name: 'Smart Classroom' },
-];
+interface VenueType {
+    id: number;
+    name: string;
+}
 
-const mockAvailableRooms = [
-    {
-        id: 1,
-        roomId: 'LAB101',
-        name: 'Lab 101',
-        building: 'Colombo City Campus',
-        venueType: 'Laboratory',
-        level: '1st Floor',
-        capacity: 30,
-    },
-    {
-        id: 2,
-        roomId: 'LEC201',
-        name: 'Lecture Hall A',
-        building: 'Foundation School',
-        venueType: 'Lecture Room',
-        level: '2nd Floor',
-        capacity: 50,
-    },
-    {
-        id: 3,
-        roomId: 'SMART301',
-        name: 'Smart Classroom 2',
-        building: 'Kandy Branch',
-        venueType: 'Smart Classroom',
-        level: '3rd Floor',
-        capacity: 25,
-    },
-];
+interface Room {
+    id: number;
+    roomId: string;
+    name: string;
+    building: string;
+    buildingId: number;
+    venueType: string;
+    venueTypeId: number;
+    level: string;
+    capacity: number;
+}
 
-export default function CreateBooking() {
-    const { auth } = usePage().props as any;
-    const lecturerName = auth?.user?.name || "Lecturer";
+interface Props {
+    locations: Location[];
+    venueTypes: VenueType[];
+    rooms: Room[];
+    todayBookingsCount: number;
+    user: {
+        name: string;
+        email: string;
+    };
+}
+
+export default function CreateBooking({ locations, venueTypes, rooms, todayBookingsCount, user }: Props) {
     
     const handleLogout = () => {
         router.post('/logout');
@@ -79,17 +65,65 @@ export default function CreateBooking() {
         date: '',
         startTime: '',
         endTime: '',
-        building: '',
-        venueType: '',
-        capacity: '',
         roomId: '',
-        subject: '',
-        description: '',
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [dailyBookingsCount, setDailyBookingsCount] = useState(3); // Mock count - should match dashboard
+    const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
+    const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+
+    // Check for pre-filled data from room search
+    useEffect(() => {
+        const prebookingData = sessionStorage.getItem('prebookingData');
+        if (prebookingData) {
+            const data = JSON.parse(prebookingData);
+            setBookingData(prev => ({
+                ...prev,
+                date: data.date || '',
+                startTime: data.startTime || '',
+                endTime: data.endTime || '',
+                roomId: data.roomId ? data.roomId.toString() : '',
+            }));
+            sessionStorage.removeItem('prebookingData');
+        }
+    }, []);
+
+    // Check room availability when date/time changes
+    useEffect(() => {
+        if (bookingData.date && bookingData.startTime && bookingData.endTime) {
+            checkAvailableRooms();
+        }
+    }, [bookingData.date, bookingData.startTime, bookingData.endTime]);
+
+    const checkAvailableRooms = async () => {
+        if (!bookingData.date || !bookingData.startTime || !bookingData.endTime) return;
+
+        setIsCheckingAvailability(true);
+        try {
+            const response = await fetch('/lecturer/search-available-rooms', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({
+                    date: bookingData.date,
+                    start_time: bookingData.startTime,
+                    end_time: bookingData.endTime
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                setAvailableRooms(result.rooms.filter((room: Room & {isAvailable: boolean}) => room.isAvailable));
+            }
+        } catch (error) {
+            console.error('Error checking availability:', error);
+        } finally {
+            setIsCheckingAvailability(false);
+        }
+    };
 
     const handleInputChange = (key: string, value: string) => {
         setBookingData(prev => ({ ...prev, [key]: value }));
@@ -106,7 +140,6 @@ export default function CreateBooking() {
         if (!bookingData.startTime) newErrors.startTime = 'Start time is required';
         if (!bookingData.endTime) newErrors.endTime = 'End time is required';
         if (!bookingData.roomId) newErrors.roomId = 'Please select a room';
-        if (!bookingData.subject) newErrors.subject = 'Subject is required';
 
         // Validate time range
         if (bookingData.startTime && bookingData.endTime) {
@@ -116,7 +149,7 @@ export default function CreateBooking() {
         }
 
         // Validate daily booking limit
-        if (dailyBookingsCount >= 4) {
+        if (todayBookingsCount >= 4) {
             newErrors.general = 'You have reached the maximum daily booking limit (4 bookings per day)';
         }
 
@@ -134,13 +167,27 @@ export default function CreateBooking() {
         setIsSubmitting(true);
         
         try {
-            // Mock API call - will be replaced with actual API
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            console.log('Creating booking:', bookingData);
-            
-            // Success - show success message and redirect
-            alert('Booking created successfully! Redirecting to dashboard...');
-            router.visit('/lecturer/dashboard');
+            const response = await fetch('/lecturer/bookings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({
+                    date: bookingData.date,
+                    start_time: bookingData.startTime,
+                    end_time: bookingData.endTime,
+                    room_id: parseInt(bookingData.roomId),
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                alert('Booking created successfully! Redirecting to dashboard...');
+                router.visit('/lecturer/dashboard');
+            } else {
+                setErrors({ general: result.message || 'Failed to create booking. Please try again.' });
+            }
         } catch (error) {
             console.error('Error creating booking:', error);
             setErrors({ general: 'Failed to create booking. Please try again.' });
@@ -202,7 +249,7 @@ export default function CreateBooking() {
 
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Daily Booking Limit Alert */}
-                {dailyBookingsCount >= 4 && (
+                {todayBookingsCount >= 4 && (
                     <Alert className="border-red-200 bg-red-50 mb-6">
                         <AlertCircle className="h-4 w-4 text-red-600" />
                         <AlertDescription className="text-red-700">
@@ -212,11 +259,11 @@ export default function CreateBooking() {
                     </Alert>
                 )}
 
-                {dailyBookingsCount < 4 && (
+                {todayBookingsCount < 4 && (
                     <Alert className="border-green-200 bg-green-50 mb-6">
                         <CheckCircle className="h-4 w-4 text-green-600" />
                         <AlertDescription className="text-green-700">
-                            You have {4 - dailyBookingsCount} booking(s) remaining today. (Current: {dailyBookingsCount}/4)
+                            You have {4 - todayBookingsCount} booking(s) remaining today. (Current: {todayBookingsCount}/4)
                         </AlertDescription>
                     </Alert>
                 )}
@@ -296,31 +343,6 @@ export default function CreateBooking() {
                                 </div>
                             </div>
 
-                            {/* Subject */}
-                            <div className="space-y-2 mb-6">
-                                <Label htmlFor="subject" className="text-gray-700 font-medium">Subject/Course *</Label>
-                                <Input
-                                    id="subject"
-                                    value={bookingData.subject}
-                                    onChange={(e) => handleInputChange('subject', e.target.value)}
-                                    placeholder="e.g., Web Development, Database Systems"
-                                    className={`border-gray-200 focus:border-[#00b2a7] focus:ring-[#00b2a7] text-gray-900 ${errors.subject ? 'border-red-300' : ''}`}
-                                />
-                                {errors.subject && <p className="text-sm text-red-600">{errors.subject}</p>}
-                            </div>
-
-                            {/* Description */}
-                            <div className="space-y-2">
-                                <Label htmlFor="description" className="text-gray-700 font-medium">Description (Optional)</Label>
-                                <Textarea
-                                    id="description"
-                                    value={bookingData.description}
-                                    onChange={(e) => handleInputChange('description', e.target.value)}
-                                    placeholder="Additional details about your booking..."
-                                    rows={3}
-                                    className="border-gray-200 focus:border-[#00b2a7] focus:ring-[#00b2a7] text-gray-900"
-                                />
-                            </div>
                         </CardContent>
                     </Card>
 
@@ -338,48 +360,68 @@ export default function CreateBooking() {
                             </div>
                         </CardHeader>
                         <CardContent className="p-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {mockAvailableRooms.map((room) => (
-                                    <Card 
-                                        key={room.id} 
-                                        className={`border-2 cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105 ${
-                                            bookingData.roomId === room.roomId 
-                                                ? 'border-[#00b2a7] bg-[#00b2a7]/5 shadow-lg ring-2 ring-[#00b2a7]/20' 
-                                                : 'border-gray-200 hover:border-[#00b2a7]/50'
-                                        }`}
-                                        onClick={() => handleRoomSelect(room.roomId)}
-                                    >
-                                        <CardContent className="p-4">
-                                            <div className="flex items-center justify-between mb-3">
-                                                <h3 className="font-bold text-gray-900 text-sm sm:text-base">{room.name}</h3>
-                                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                                                    bookingData.roomId === room.roomId 
-                                                        ? 'border-[#00b2a7] bg-[#00b2a7]' 
-                                                        : 'border-gray-300'
-                                                }`}>
-                                                    {bookingData.roomId === room.roomId && (
-                                                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                                                    )}
+                            {isCheckingAvailability ? (
+                                <div className="text-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00b2a7] mx-auto mb-4"></div>
+                                    <p className="text-gray-600">Checking room availability...</p>
+                                </div>
+                            ) : availableRooms.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                                        <Building className="h-8 w-8 text-gray-400" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Available Rooms</h3>
+                                    <p className="text-gray-600">
+                                        {bookingData.date && bookingData.startTime && bookingData.endTime 
+                                            ? 'No rooms are available for the selected time slot. Please try a different time.'
+                                            : 'Please select date and time to see available rooms.'
+                                        }
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {availableRooms.map((room) => (
+                                        <Card 
+                                            key={room.id} 
+                                            className={`border-2 cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105 ${
+                                                bookingData.roomId === room.id.toString() 
+                                                    ? 'border-[#00b2a7] bg-[#00b2a7]/5 shadow-lg ring-2 ring-[#00b2a7]/20' 
+                                                    : 'border-gray-200 hover:border-[#00b2a7]/50'
+                                            }`}
+                                            onClick={() => handleRoomSelect(room.id.toString())}
+                                        >
+                                            <CardContent className="p-4">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <h3 className="font-bold text-gray-900 text-sm sm:text-base">{room.name}</h3>
+                                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                                        bookingData.roomId === room.id.toString() 
+                                                            ? 'border-[#00b2a7] bg-[#00b2a7]' 
+                                                            : 'border-gray-300'
+                                                    }`}>
+                                                        {bookingData.roomId === room.id.toString() && (
+                                                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="space-y-2 text-xs sm:text-sm text-gray-600">
-                                                <div className="flex items-center space-x-2">
-                                                    <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-[#00b2a7] flex-shrink-0" />
-                                                    <span className="truncate">{room.building}</span>
+                                                <div className="space-y-2 text-xs sm:text-sm text-gray-600">
+                                                    <div className="flex items-center space-x-2">
+                                                        <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-[#00b2a7] flex-shrink-0" />
+                                                        <span className="truncate">{room.building}</span>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Building className="h-3 w-3 sm:h-4 sm:w-4 text-[#00b2a7] flex-shrink-0" />
+                                                        <span className="truncate">{room.venueType} • {room.level}</span>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Users className="h-3 w-3 sm:h-4 sm:w-4 text-[#00b2a7] flex-shrink-0" />
+                                                        <span>Capacity: {room.capacity}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <Building className="h-3 w-3 sm:h-4 sm:w-4 text-[#00b2a7] flex-shrink-0" />
-                                                    <span className="truncate">{room.venueType} • {room.level}</span>
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <Users className="h-3 w-3 sm:h-4 sm:w-4 text-[#00b2a7] flex-shrink-0" />
-                                                    <span>Capacity: {room.capacity}</span>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            )}
                             {errors.roomId && <p className="text-sm text-red-600 mt-2">{errors.roomId}</p>}
                         </CardContent>
                     </Card>
@@ -396,7 +438,7 @@ export default function CreateBooking() {
                         </Button>
                         <Button 
                             type="submit"
-                            disabled={isSubmitting || dailyBookingsCount >= 4}
+                            disabled={isSubmitting || todayBookingsCount >= 4}
                             className="bg-gradient-to-r from-[#00b2a7] to-[#019d95] hover:from-[#019d95] hover:to-[#018f87] text-white font-semibold px-8 py-3 rounded-lg shadow-lg"
                         >
                             {isSubmitting ? 'Creating Booking...' : 'Create Booking'}

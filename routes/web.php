@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\LecturerController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -42,21 +43,17 @@ Route::middleware(['auth', 'user-access:admin'])->group(function () {
 });
 
 Route::middleware(['auth', 'user-access:lecturer'])->group(function () {
-    Route::get('lecturer/dashboard', function () {
-        return Inertia::render('lecturer/dashboard');
-    })->name('lecturer.dashboard');
+    Route::get('lecturer/dashboard', [LecturerController::class, 'dashboard'])->name('lecturer.dashboard');
+    Route::delete('lecturer/bookings/{id}', [LecturerController::class, 'cancelBooking'])->name('lecturer.bookings.cancel');
 
-    Route::get('lecturer/room-search', function () {
-        return Inertia::render('lecturer/room-search');
-    })->name('lecturer.room-search');
+    Route::get('lecturer/room-search', [LecturerController::class, 'roomSearch'])->name('lecturer.room-search');
+    Route::post('lecturer/search-available-rooms', [LecturerController::class, 'searchAvailableRooms'])->name('lecturer.search-available-rooms');
 
-    Route::get('lecturer/create-booking', function () {
-        return Inertia::render('lecturer/create-booking');
-    })->name('lecturer.create-booking');
+    Route::get('lecturer/create-booking', [LecturerController::class, 'createBooking'])->name('lecturer.create-booking');
+    Route::post('lecturer/bookings', [LecturerController::class, 'storeBooking'])->name('lecturer.bookings.store');
+    Route::post('lecturer/check-room-availability', [LecturerController::class, 'checkRoomAvailability'])->name('lecturer.check-room-availability');
 
-    Route::get('lecturer/schedule', function () {
-        return Inertia::render('lecturer/schedule');
-    })->name('lecturer.schedule');
+    Route::get('lecturer/schedule', [LecturerController::class, 'schedule'])->name('lecturer.schedule');
 });
 
 // Catch-all route for Admin SPA — serves AdminDashboard for any /admin/* route
