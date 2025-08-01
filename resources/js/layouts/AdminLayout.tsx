@@ -14,15 +14,15 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   return (
     <div className="flex flex-col min-h-screen bg-white">
       <header className="bg-[#00b2a7] text-white p-5 shadow-md flex justify-between items-center">
-        <h1 className="text-3xl font-extrabold">Institution Admin Panel</h1>
-        <div className="relative cursor-pointer" title="Notifications">
+        <h1 className="text-3xl font-extrabold">APIIT Admin Panel</h1>
+        {/* <div className="relative cursor-pointer" title="Notifications">
           <span className="material-icons select-none">notifications</span>
           {notifications.length > 0 && (
             <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full animate-pulse">
               {notifications.length}
             </span>
           )}
-        </div>
+        </div> */}
       </header>
 
       <div className="flex flex-1 overflow-hidden">
@@ -32,9 +32,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             <SidebarLink label="Dashboard" href="/admin/dashboard" />
             <SidebarLink label="Manage Rooms" href="/admin/rooms" />
             <SidebarLink label="View & Approve Bookings" href="/admin/bookings" />
-            <SidebarLink label="Reports" href="/admin/reports" />
-            <SidebarLink label="User Logs" href="/admin/logs" />
-            <SidebarLink label="Settings" href="/admin/settings" />
+            <SidebarLink label="Lecture Shedule" href="/admin/classroom" />
             <SidebarLink label="Logout" href="/admin/logout" method="post" />
           </nav>
         </aside>
@@ -45,7 +43,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       </div>
 
       <footer className="bg-black text-white text-center py-4 text-sm">
-        &copy; {new Date().getFullYear()} Institution Name. All rights reserved.
+        &copy; {new Date().getFullYear()} Asia Pacific Institute of Information Technology. All rights reserved.
       </footer>
     </div>
   );

@@ -25,6 +25,10 @@ Route::middleware(['auth', 'user-access:admin'])->group(function () {
 
     Route::get('/admin/rooms', [AdminController::class, 'manageRooms'])->name('admin.rooms');
     Route::get('/admin/bookings', [AdminController::class, 'manageBookings'])->name('admin.bookings');
+    Route::get('/admin/classroom', [AdminController::class, 'manageClassrooms'])->name('admin.classroom');
+    Route::get('/admin/classrooms', [AdminController::class, 'manageClassrooms'])->name('admin.classrooms');
+    Route::post('/admin/classrooms/book', [AdminController::class, 'bookClassroom'])->name('admin.classrooms.book');
+    Route::post('/admin/classrooms/check-conflicts', [AdminController::class, 'checkBookingConflicts'])->name('admin.classrooms.check-conflicts');
 
     Route::get('/admin/reports', [AdminController::class, 'manageReports'])->name('admin.reports');
 

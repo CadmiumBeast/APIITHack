@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -23,7 +24,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'user_type',
+        'type',
     ];
 
     /**
@@ -35,6 +36,8 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+
 
     /**
      * Get the attributes that should be cast.
@@ -55,4 +58,10 @@ class User extends Authenticatable
             get: fn ($value) =>  ["student", "admin", "lecturer"][$value],
         );
     }
+
+    public function RoomBookings(): HasMany
+    {
+        return $this->hasMany(RoomBooking::class);
+    }
+    
 }
