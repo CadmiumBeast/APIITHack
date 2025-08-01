@@ -1,17 +1,11 @@
 import React, { useState } from 'react';
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Link,
-  useLocation,
-} from 'react-router-dom';
+import { Link } from '@inertiajs/react';
+import AdminLayout from '@/layouts/AdminLayout';
 
 import {
   PieChart, Pie, Cell, Legend, Tooltip,
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
-import RoomsPage from './ManageRooms';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -156,99 +150,28 @@ const DashboardPage: React.FC = () => {
   );
 };
 
-const BookingsPage = () => <PageWrapper title="View & Approve Bookings">Booking approvals here...</PageWrapper>;
-const AvailabilityPage = () => <PageWrapper title="Manage Availability">Availability management here...</PageWrapper>;
-const ReportsPage = () => <PageWrapper title="Reports">Reports content here...</PageWrapper>;
-const LogsPage = () => <PageWrapper title="User Logs">User logs and activity here...</PageWrapper>;
-const SettingsPage = () => <PageWrapper title="Settings">Settings page content...</PageWrapper>;
-
-const PageWrapper: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
-  const location = useLocation();
-
-  return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      <h2 className="text-3xl font-semibold mb-6 text-gray-800">{title}</h2>
-      <div className="bg-white p-6 rounded shadow min-h-[400px]">{children}</div>
-      <p className="mt-6 text-sm text-gray-500">Current Path: {location.pathname}</p>
-    </div>
-  );
-};
-
 const AdminDashboard: React.FC = () => {
-  const [notifications] = useState([
-    { id: 1, message: 'Blackout date approaching: 2025-08-15' },
-    { id: 2, message: 'Room 203 under maintenance' },
-  ]);
-
   return (
-    <Router>
-      <div className="flex flex-col min-h-screen bg-white">
-        <header className="bg-[#00b2a7] text-white p-5 shadow-md flex justify-between items-center">
-          <h1 className="text-3xl font-extrabold">Institution Admin Panel</h1>
-          <div className="relative cursor-pointer" title="Notifications">
-            <span className="material-icons select-none">notifications</span>
-            {notifications.length > 0 && (
-              <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full animate-pulse">
-                {notifications.length}
-              </span>
-            )}
-          </div>
-        </header>
-
-        <div className="flex flex-1 overflow-hidden">
-          <aside className="w-64 bg-white border-r p-6 shadow-sm overflow-auto">
-            <h2 className="text-xl font-bold mb-8 text-[#00b2a7]">Navigation</h2>
-            <nav className="space-y-4">
-              <SidebarLink label="Dashboard" to="/" />
-              <SidebarLink label="Manage Rooms" to="/admin/rooms" />
-              <SidebarLink label="View & Approve Bookings" to="/admin/bookings" />
-              <SidebarLink label="Reports" to="/admin/reports" />
-              <SidebarLink label="User Logs" to="/admin/logs" />
-              <SidebarLink label="Settings" to="/admin/settings" />
-            </nav>
-          </aside>
-
-          <main className="flex-1 overflow-auto">
-            <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/admin/dashboard" element={<DashboardPage />} />
-              <Route path="/admin/rooms" element={<RoomsPage />} />
-              <Route path="/admin/bookings" element={<BookingsPage />} />
-              <Route path="/admin/reports" element={<ReportsPage />} />
-              <Route path="/admin/logs" element={<LogsPage />} />
-              <Route path="/admin/settings" element={<SettingsPage />} />
-              <Route
-                path="*"
-                element={
-                  <div className="p-8">
-                    <h2 className="text-2xl font-semibold">404 - Page Not Found</h2>
-                  </div>
-                }
-              />
-            </Routes>
-          </main>
-        </div>
-
-        <footer className="bg-black text-white text-center py-4 text-sm">
-          &copy; {new Date().getFullYear()} Institution Name. All rights reserved.
-        </footer>
-      </div>
-    </Router>
+    <AdminLayout>
+      <DashboardPage />
+    </AdminLayout>
   );
 };
 
 type SidebarLinkProps = {
   label: string;
-  to: string;
+  href: string;
+  method?: 'get' | 'post';
 };
 
-const SidebarLink: React.FC<SidebarLinkProps> = ({ label, to }) => {
-  const location = useLocation();
-  const isActive = location.pathname === to || (to === '/' && location.pathname === '/');
+const SidebarLink: React.FC<SidebarLinkProps> = ({ label, href, method = 'get' }) => {
+  // For server-side routing, we can check the current URL from window.location
+  const isActive = typeof window !== 'undefined' && window.location.pathname === href;
 
   return (
     <Link
-      to={to}
+      href={href}
+      method={method}
       className={`block px-3 py-2 rounded font-medium transition ${
         isActive ? 'bg-[#00b2a7] text-white' : 'hover:bg-[#00b2a7] hover:text-white'
       }`}
