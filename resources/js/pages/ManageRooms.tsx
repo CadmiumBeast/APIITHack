@@ -3,24 +3,58 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import AdminLayout from '@/layouts/AdminLayout';
+
+interface VenueType {
+  id: number;
+  name: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface Location {
+  id: number;
+  name: string;
+  levels: number;
+  created_at?: string;
+  updated_at?: string;
+}
 
 interface Room {
+  id?: number;
   roomId: string;
   building: string;
   venueType: string;
   level: string;
   capacity: number;
+  created_at?: string;
+  updated_at?: string;
+  raw_data?: {
+    building_id: number;
+    venue_type_id: number;
+    location_data: any;
+    venue_type_data: any;
+  };
 }
 
-const initialRooms: Room[] = [
-  { roomId: 'L1Lab1', building: 'City Campus', venueType: 'Lab', level: '1', capacity: 30 },
-  { roomId: 'L3CR7', building: 'Access Tower 1', venueType: 'Classroom', level: '3', capacity: 40 },
-];
+interface DebugInfo {
+  total_rooms: number;
+  raw_rooms: any[];
+  controller_timestamp: string;
+}
 
-export default function ManageRooms() {
-  const [rooms, setRooms] = useState<Room[]>(initialRooms);
+interface ManageRoomsProps {
+  rooms: Room[];
+  debug_info?: DebugInfo;
+  venueTypes: VenueType[];
+  locations: Location[];
+}
+
+export default function ManageRooms({ rooms: initialRooms, debug_info, venueTypes, locations }: ManageRoomsProps) {
+  const [rooms, setRooms] = useState<Room[]>(initialRooms || []);
   const [open, setOpen] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
   const [newRoom, setNewRoom] = useState<Room>({
     roomId: '',
     building: '',
@@ -28,6 +62,29 @@ export default function ManageRooms() {
     level: '',
     capacity: 0,
   });
+
+  // Generate levels based on selected location
+  const getAvailableLevels = () => {
+    if (!selectedLocationId) return [];
+    const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
+    if (!selectedLocation) return [];
+    
+    return Array.from({ length: selectedLocation.levels }, (_, i) => ({
+      value: (i + 1).toString(),
+      label: `Level ${i + 1}`,
+    }));
+  };
+
+  // Handle building selection
+  const handleBuildingChange = (locationId: string) => {
+    const location = locations.find(loc => loc.id === parseInt(locationId));
+    setSelectedLocationId(parseInt(locationId));
+    setNewRoom({ 
+      ...newRoom, 
+      building: location?.name || '',
+      level: '' // Reset level when building changes
+    });
+  };
 
   const handleAddOrUpdateRoom = () => {
     if (editIndex !== null) {
@@ -39,12 +96,21 @@ export default function ManageRooms() {
       setRooms([...rooms, newRoom]);
     }
     setNewRoom({ roomId: '', building: '', venueType: '', level: '', capacity: 0 });
+    setSelectedLocationId(null);
     setOpen(false);
   };
 
   const handleEdit = (index: number) => {
     setEditIndex(index);
-    setNewRoom(rooms[index]);
+    const roomToEdit = rooms[index];
+    setNewRoom(roomToEdit);
+    
+    // Find the location ID for the selected building
+    const location = locations.find(loc => loc.name === roomToEdit.building);
+    if (location) {
+      setSelectedLocationId(location.id);
+    }
+    
     setOpen(true);
   };
 
@@ -54,12 +120,23 @@ export default function ManageRooms() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-[#00b2a7]">Manage Rooms</h1>
-        <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setEditIndex(null); }}>
+    <AdminLayout>
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-[#00b2a7]">Manage Rooms</h1>
+        </div>
+      
+
+        <Dialog open={open} onOpenChange={(isOpen) => { 
+          setOpen(isOpen); 
+          if (!isOpen) {
+            setEditIndex(null);
+            setSelectedLocationId(null);
+            setNewRoom({ roomId: '', building: '', venueType: '', level: '', capacity: 0 });
+          }
+        }}>
           <DialogTrigger asChild>
-            <Button className="bg-[#00b2a7] hover:bg-[#009688] text-white">Add Room</Button>
+            <Button className="bg-[#00b2a7] hover:bg-[#009688] text-white mb-4">Add Room</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -71,34 +148,53 @@ export default function ManageRooms() {
                 value={newRoom.roomId}
                 onChange={(e) => setNewRoom({ ...newRoom, roomId: e.target.value })}
               />
-              <Input
-                placeholder="Building (e.g., City Campus)"
-                value={newRoom.building}
-                onChange={(e) => setNewRoom({ ...newRoom, building: e.target.value })}
-              />
+              
+              {/* Dynamic Building/Location Selection */}
+              <Select onValueChange={handleBuildingChange} value={selectedLocationId?.toString() || ''}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Building/Location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((location) => (
+                    <SelectItem key={location.id} value={location.id.toString()}>
+                      {location.name} ({location.levels} levels)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* Dynamic Venue Type Selection */}
               <Select onValueChange={(value) => setNewRoom({ ...newRoom, venueType: value })} value={newRoom.venueType}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Venue Type" />
+                  <SelectValue placeholder="Select Venue Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Classroom">Classroom</SelectItem>
-                  <SelectItem value="Lab">Lab</SelectItem>
-                  <SelectItem value="Discussion Room">Discussion Room</SelectItem>
-                  <SelectItem value="Auditorium">Auditorium</SelectItem>
+                  {venueTypes.map((venueType) => (
+                    <SelectItem key={venueType.id} value={venueType.name}>
+                      {venueType.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <Select onValueChange={(value) => setNewRoom({ ...newRoom, level: value })} value={newRoom.level}>
+              
+              {/* Dynamic Level Selection based on selected building */}
+              <Select 
+                onValueChange={(value) => setNewRoom({ ...newRoom, level: value })} 
+                value={newRoom.level}
+                disabled={!selectedLocationId}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Level" />
+                  <SelectValue placeholder={selectedLocationId ? "Select Level" : "Select Building First"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">1</SelectItem>
-                  <SelectItem value="2">2</SelectItem>
-                  <SelectItem value="3">3</SelectItem>
-                  <SelectItem value="4">4</SelectItem>
-                  <SelectItem value="5">5</SelectItem>
+                  {getAvailableLevels().map((level) => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              
               <Input
                 type="number"
                 placeholder="Capacity"
@@ -111,49 +207,49 @@ export default function ManageRooms() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
 
-      <table className="w-full border text-sm">
-        <thead>
-          <tr className="bg-gray-100 text-left text-[#00b2a7]">
-            <th className="p-2">Room ID</th>
-            <th className="p-2">Building</th>
-            <th className="p-2">Venue Type</th>
-            <th className="p-2">Level</th>
-            <th className="p-2">Capacity</th>
-            <th className="p-2">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rooms.map((room, index) => (
-            <tr key={index} className="border-t">
-              <td className="p-2">{room.roomId}</td>
-              <td className="p-2">{room.building}</td>
-              <td className="p-2">{room.venueType}</td>
-              <td className="p-2">{room.level}</td>
-              <td className="p-2">{room.capacity}</td>
-              <td className="p-2 space-x-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-[#00b2a7] border-[#00b2a7] hover:bg-[#00b2a7] hover:text-white"
-                  onClick={() => handleEdit(index)}
-                >
-                  Edit
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
-                  onClick={() => handleDelete(index)}
-                >
-                  Delete
-                </Button>
-              </td>
+        <table className="w-full border text-sm">
+          <thead>
+            <tr className="bg-gray-100 text-left text-[#00b2a7]">
+              <th className="p-2">Room ID</th>
+              <th className="p-2">Building</th>
+              <th className="p-2">Venue Type</th>
+              <th className="p-2">Level</th>
+              <th className="p-2">Capacity</th>
+              <th className="p-2">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {rooms.map((room, index) => (
+              <tr key={room.id || index} className="border-t">
+                <td className="p-2">{room.roomId}</td>
+                <td className="p-2">{room.building}</td>
+                <td className="p-2">{room.venueType}</td>
+                <td className="p-2">{room.level}</td>
+                <td className="p-2">{room.capacity}</td>
+                <td className="p-2 space-x-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-[#00b2a7] border-[#00b2a7] hover:bg-[#00b2a7] hover:text-white"
+                    onClick={() => handleEdit(index)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
+                    onClick={() => handleDelete(index)}
+                  >
+                    Delete
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </AdminLayout>
   );
 }
