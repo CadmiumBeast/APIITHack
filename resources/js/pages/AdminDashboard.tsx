@@ -14,6 +14,9 @@ import {
 import RoomsPage from './ManageRooms';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import BookingsPage from './ViewBookings';
+import LogsPage from './UserLogs';
+import FeedbackPage from './Feedback';
 
 const COLORS = ['#00b2a7', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -156,11 +159,7 @@ const DashboardPage: React.FC = () => {
   );
 };
 
-const BookingsPage = () => <PageWrapper title="View & Approve Bookings">Booking approvals here...</PageWrapper>;
-const AvailabilityPage = () => <PageWrapper title="Manage Availability">Availability management here...</PageWrapper>;
-const ReportsPage = () => <PageWrapper title="Reports">Reports content here...</PageWrapper>;
-const LogsPage = () => <PageWrapper title="User Logs">User logs and activity here...</PageWrapper>;
-const SettingsPage = () => <PageWrapper title="Settings">Settings page content...</PageWrapper>;
+
 
 const PageWrapper: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
   const location = useLocation();
@@ -184,16 +183,19 @@ const AdminDashboard: React.FC = () => {
     <Router>
       <div className="flex flex-col min-h-screen bg-white">
         <header className="bg-[#00b2a7] text-white p-5 shadow-md flex justify-between items-center">
-          <h1 className="text-3xl font-extrabold">Institution Admin Panel</h1>
-          <div className="relative cursor-pointer" title="Notifications">
-            <span className="material-icons select-none">notifications</span>
-            {notifications.length > 0 && (
-              <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full animate-pulse">
-                {notifications.length}
-              </span>
-            )}
-          </div>
+          <h1 className="text-3xl font-extrabold">APIIT Admin Panel</h1>
+          <button
+            onClick={() => {
+              // Clear session and redirect (replace this logic as needed)
+              localStorage.clear();
+              window.location.href = '/login';
+            }}
+            className="bg-white text-[#00b2a7] font-semibold px-4 py-2 rounded hover:bg-gray-100 transition"
+          >
+            Logout
+          </button>
         </header>
+
 
         <div className="flex flex-1 overflow-hidden">
           <aside className="w-64 bg-white border-r p-6 shadow-sm overflow-auto">
@@ -202,9 +204,8 @@ const AdminDashboard: React.FC = () => {
               <SidebarLink label="Dashboard" to="/" />
               <SidebarLink label="Manage Rooms" to="/admin/rooms" />
               <SidebarLink label="View & Approve Bookings" to="/admin/bookings" />
-              <SidebarLink label="Reports" to="/admin/reports" />
               <SidebarLink label="User Logs" to="/admin/logs" />
-              <SidebarLink label="Settings" to="/admin/settings" />
+              <SidebarLink label="feedback" to="/admin/feedback" />
             </nav>
           </aside>
 
@@ -214,9 +215,8 @@ const AdminDashboard: React.FC = () => {
               <Route path="/admin/dashboard" element={<DashboardPage />} />
               <Route path="/admin/rooms" element={<RoomsPage />} />
               <Route path="/admin/bookings" element={<BookingsPage />} />
-              <Route path="/admin/reports" element={<ReportsPage />} />
               <Route path="/admin/logs" element={<LogsPage />} />
-              <Route path="/admin/settings" element={<SettingsPage />} />
+              <Route path="/admin/feedback" element={<FeedbackPage />} />
               <Route
                 path="*"
                 element={
@@ -230,7 +230,7 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         <footer className="bg-black text-white text-center py-4 text-sm">
-          &copy; {new Date().getFullYear()} Institution Name. All rights reserved.
+          &copy; {new Date().getFullYear()} Asia Pacific institution of Information Technology. All rights reserved.
         </footer>
       </div>
     </Router>
