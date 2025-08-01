@@ -38,7 +38,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
     <>
       <Head title="Log in" />
 
-      <div className="min-h-screen flex items-center justify-center bg-[#e6f4f1]">
+      <div className="min-h-screen flex items-center justify-center bg-[url('/images/bg.jpg')] bg-cover bg-center">
         <div className="flex w-full max-w-5xl shadow-2xl rounded-2xl overflow-hidden bg-white">
           {/* Left Panel */}
             <div className="hidden md:flex flex-col justify-center items-center bg-gradient-to-br from-[#00b2a7] to-[#018f87] text-white w-1/2 p-10 space-y-6">
