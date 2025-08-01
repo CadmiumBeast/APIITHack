@@ -8,14 +8,9 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
-
-    
-
-
 });
 
 Route::middleware(['auth', 'user-access:admin'])->group(function () {
@@ -28,6 +23,18 @@ Route::middleware(['auth', 'user-access:lecturer'])->group(function () {
     Route::get('lecturer/dashboard', function () {
         return Inertia::render('lecturer/dashboard');
     })->name('lecturer.dashboard');
+
+    Route::get('lecturer/room-search', function () {
+        return Inertia::render('lecturer/room-search');
+    })->name('lecturer.room-search');
+
+    Route::get('lecturer/create-booking', function () {
+        return Inertia::render('lecturer/create-booking');
+    })->name('lecturer.create-booking');
+
+    Route::get('lecturer/schedule', function () {
+        return Inertia::render('lecturer/schedule');
+    })->name('lecturer.schedule');
 });
 
 // Catch-all route for Admin SPA — serves AdminDashboard for any /admin/* route
