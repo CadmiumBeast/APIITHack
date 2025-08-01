@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Link } from '@inertiajs/react';
 import AdminLayout from '@/layouts/AdminLayout';
 
 import {
@@ -8,9 +7,6 @@ import {
 } from 'recharts';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import BookingsPage from './ViewBookings';
-import LogsPage from './UserLogs';
-import FeedbackPage from './Feedback';
 
 const COLORS = ['#00b2a7', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -152,29 +148,12 @@ const DashboardPage: React.FC = () => {
     </div>
   );
 };
-  );
-};
 
-type SidebarLinkProps = {
-  label: string;
-  href: string;
-  method?: 'get' | 'post';
-};
-
-const SidebarLink: React.FC<SidebarLinkProps> = ({ label, href, method = 'get' }) => {
-  // For server-side routing, we can check the current URL from window.location
-  const isActive = typeof window !== 'undefined' && window.location.pathname === href;
-
+const AdminDashboard: React.FC = () => {
   return (
-    <Link
-      href={href}
-      method={method}
-      className={`block px-3 py-2 rounded font-medium transition ${
-        isActive ? 'bg-[#00b2a7] text-white' : 'hover:bg-[#00b2a7] hover:text-white'
-      }`}
-    >
-      {label}
-    </Link>
+    <AdminLayout>
+      <DashboardPage />
+    </AdminLayout>
   );
 };
 
